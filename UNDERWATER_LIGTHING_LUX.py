@@ -3,10 +3,10 @@
 # For Julian Charrière / Studio — Correr, Venice 2026
 # ══════════════════════════════════════════════════════════════════════════════
 #
-# WHAT THIS SCRIPT DOES
+# SCRIPT
 # ─────────────────────
 # Controls 6 LED channels via hardware PWM (pigpio) on a Raspberry Pi 4.
-# It runs a pre-composed 30-step artistic sequence that slowly varies both
+# It runs a pre-composed 30-step sequence that slowly varies both
 # LED brightness and strobe frequency, creating an underwater tremor effect.
 #
 # On top of the sequence, a BH1750 ambient light sensor (I2C) continuously
@@ -14,7 +14,7 @@
 # raised automatically so the LEDs never disappear — the installation always
 # stays visible, regardless of the lighting conditions in the room.
 #
-# HOW THE LUX → BRIGHTNESS FLOOR WORKS
+# LUX 2 BRIGHTNESS FLOOR MAPPING
 # ──────────────────────────────────────
 #   Room lux < LUX_DARK_THRESHOLD  (default  50 lux) → floor = BOOST_MAX (45%)
 #   Room lux > LUX_BRIGHT_THRESHOLD (default 500 lux) → floor = 0% (no boost)
@@ -32,7 +32,9 @@
 #
 # FAILSAFE
 # ────────
-#   On any stop or crash all LEDs snap to 25% brightness at 800 Hz (never off).
+#   On any stop or crash all LED channels snap immediately to 25% brightness at 800 Hz (never off).
+#   If the lux sensor is missing or fails mid-run, the brightness floor drops to 0 — the
+#   sequence runs at its original artistic values with no boost applied.
 #
 # HARDWARE
 # ────────
@@ -144,8 +146,8 @@ def read_lux_average(bus):
 def lux_to_floor(lux):
     """Map ambient lux to a minimum LED brightness percentage (0–BOOST_MAX)."""
     if lux is None:
-        # Sensor failure: stay at max boost so the space stays lit
-        return BOOST_MAX_BRIGHTNESS
+        # Sensor failure: no boost, sequence runs at its original values
+        return BOOST_MIN_BRIGHTNESS
     if lux >= LUX_BRIGHT_THRESHOLD:
         return BOOST_MIN_BRIGHTNESS
     if lux <= LUX_DARK_THRESHOLD:
